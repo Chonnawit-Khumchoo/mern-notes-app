@@ -5,39 +5,48 @@ import authRoutes from "./routes/auth.js";
 import notesRoutes from "./routes/notes.js";
 import path from "path";
 
-dotenv.config({ path: "./backend/.env" });
-
-const PORT = process.env.PORT || 5000;
+dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+const __dirname = path.resolve();
 
 app.use(express.json());
-
-app.get("/", (req, res) => {
-  res.send("API running");
-});
 
 app.use("/api/users", authRoutes);
 app.use("/api/notes", notesRoutes);
 
-const __dirname = path.resolve();
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ message: "API running" });
+});
 
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "/frontend/dist")));
+  app.use(express.static(path.join(__dirname, "frontend/dist")));
+
   app.get("/{*splat}", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
+    res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.send("API running");
   });
 }
 
-
 const startServer = async () => {
-    try {
+  try {
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log("PORT:", PORT);
+    console.log("MONGO_URI exists:", !!process.env.MONGO_URI);
+    console.log("JWT_SECRET exists:", !!process.env.JWT_SECRET);
+
     await connectDB();
+
     app.listen(PORT, () => {
       console.log(`Server started at port ${PORT}`);
     });
   } catch (error) {
-    console.error("Failed to start server:", error.message);
+    console.error("Failed to start server:", error);
+    process.exit(1);
   }
 };
 
